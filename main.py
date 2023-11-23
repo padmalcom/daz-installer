@@ -3,11 +3,15 @@ import os
 import patoolib
 import shutil
 from tqdm import tqdm
+import logging
+
+logging.getLogger('patool').setLevel(logging.ERROR)
 
 ARCHIVE_EXT = 'zip', 'rar', '7z'
 TARGET_FOLDERS = ['My Library', 'Content']
+DELETE_ARCHIVES = True
 
-src_folder = "D:\\Daz3d\\newcontent"
+src_folder = "D:\\Daz3d\\neu 13"
 dest_folder = "E:\\DAZ\\My Library"
 
 folders = glob(src_folder + os.sep + "*\\")
@@ -19,7 +23,7 @@ extracted_archive_cnt = 0
 copied_folder_cnt = 0
 
 
-def find_archives_and_extract(folder:str) -> []:
+def find_archives_and_extract(folder:str, delete_archives:bool) -> []:
 	res = []
 	for ext in ARCHIVE_EXT:
 		archives = glob(folder + os.sep + "*." + ext)
@@ -31,18 +35,20 @@ def find_archives_and_extract(folder:str) -> []:
 				patoolib.extract_archive(a, outdir=target_dir, verbosity=1)
 				global extracted_archive_cnt
 				extracted_archive_cnt += 1
+				if DELETE_ARCHIVES and os.path.exists(a):
+					os.remove(a)
 			res.append(target_dir)
 	return res
 	
 # extract archives on depth 0
-input_archives = find_archives_and_extract(src_folder)
+input_archives = find_archives_and_extract(src_folder, DELETE_ARCHIVES)
 input_archive_cnt = len(input_archives)
 folders.extend(input_archives)
 
 content_folders = []
 print("Looking for content in root folders...")
 for f in tqdm(folders):
-	find_archives_and_extract(f)
+	find_archives_and_extract(f, DELETE_ARCHIVES)
 	sub_folders = glob(f + "*\\")
 	while len(sub_folders) > 0:
 		new_subfolders = []
@@ -51,6 +57,7 @@ for f in tqdm(folders):
 			if last_folder in TARGET_FOLDERS:
 				content_folders.append(sf)
 			else:
+				find_archives_and_extract(sf, DELETE_ARCHIVES)
 				new_subfolders.extend(glob(sf + "*\\"))
 		sub_folders.clear()
 		sub_folders.extend(new_subfolders)
